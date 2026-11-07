@@ -732,6 +732,7 @@ function vBackup(){
   return `<div class="card" style="margin-top:12px"><div class="label" style="margin-bottom:4px">Backup dei dati</div>
   <p class="meta" style="margin:0 0 12px">I dati sono salvati solo su questo telefono (${nSerie} serie, ${nCorse} corse). ${lb?"Ultimo backup: "+esc(lb)+".":"Nessun backup ancora fatto."} Salva una copia su Google Drive ogni tanto.</p>
   <div class="row"><button class="btn primary grow" data-act="bk-exp">Esporta backup</button><button class="btn grow" data-act="bk-imp">Importa</button></div>
+  ${vHaBackup()}
   <input type="file" id="bk-file" accept="application/json,.json,*/*" hidden></div>`;
 }
 async function exportBackup(){
@@ -748,6 +749,39 @@ async function exportBackup(){
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);segna();toast("Backup scaricato: "+name);
 }
+/* ---------- Copia mensile su Home Assistant ---------- */
+const HBK="gymbro-ha-backup", HA_NOTIFY="notify.gymbro_backup";
+let haBkMsg="";
+function lastHaBackup(){try{return localStorage.getItem(HBK)||"";}catch(e){return "";}}
+function parseBackupText(t){
+  try{return JSON.parse(t);}catch(e){}
+  const lines=String(t).split(/\r?\n/).reverse();
+  for(const l of lines){try{const d=JSON.parse(l);if(d&&d.dati)return d;}catch(e){}}
+  throw 0;
+}
+async function sendHaBackup(manual){
+  const c=GB_ANDROID.cfg(); if(!c.url||!c.token){if(manual){haBkMsg="Prima collega Home Assistant qui sopra.";render();}return false;}
+  if(!manual&&!allSets().length&&!(state.runs||[]).length) return false;
+  const msg=JSON.stringify({app:"gymbro",v:1,esportato:new Date().toISOString(),dati:state});
+  try{const r=await fetch(c.url+"/api/services/notify/send_message",{method:"POST",headers:{Authorization:"Bearer "+c.token,"Content-Type":"application/json"},body:JSON.stringify({entity_id:HA_NOTIFY,message:msg})});
+    if(!r.ok) throw r.status;
+    try{localStorage.setItem(HBK,new Date().toISOString());}catch(e){}
+    if(manual){haBkMsg="Copia inviata a Home Assistant.";render();}
+    return true;
+  }catch(e){if(manual){haBkMsg=e===401||e===403?"Home Assistant ha rifiutato il token.":e===400?"In Home Assistant manca il file di backup di GymBro.":"Home Assistant non raggiungibile: riprova più tardi.";render();}return false;}
+}
+function autoHaBackup(){const last=lastHaBackup(); const mese=dayKey(Date.now()).slice(0,7);
+  if(last&&dayKey(Date.parse(last)).slice(0,7)===mese) return; sendHaBackup(false);}
+function vHaBackup(){const c=GB_ANDROID.cfg(); if(!c.url||!c.token) return "";
+  const l=lastHaBackup(), d=l?new Date(l):null;
+  return `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><div class="label" style="margin-bottom:4px">Copia automatica su Home Assistant</div>
+  <p class="meta" style="margin:0 0 10px">Una volta al mese l'app manda una copia dei dati a Home Assistant, che la conserva nei suoi backup. ${d?"Ultima copia: "+dShort(dayKey(d))+" "+d.getFullYear()+".":"Nessuna copia ancora inviata."}</p>
+  <button class="btn block" data-act="ha-bk">Invia una copia adesso</button>${haBkMsg?`<p class="meta" style="margin:8px 0 0">${esc(haBkMsg)}</p>`:""}</div>`;}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-act]"); if(!b) return;
+  if(b.dataset.act==="ha-bk"){haBkMsg="Invio in corso…";render();sendHaBackup(true);}
+  else if(b.dataset.act==="finish") setTimeout(autoHaBackup,1500);});
+setTimeout(autoHaBackup,8000);
+
 /* ---------- Impostazioni ---------- */
 function vImpostazioni(){
   return `<h1>Impostazioni</h1><p class="sub">Testo, collegamento a Home Assistant e backup dei dati.</p>
@@ -796,7 +830,7 @@ document.addEventListener("click",e=>{
 document.addEventListener("change",e=>{
   const t=e.target; if(t.id!=="bk-file"||!t.files||!t.files[0]) return;
   const r=new FileReader();
-  r.onload=()=>{try{const d=JSON.parse(r.result);
+  r.onload=()=>{try{const d=parseBackupText(r.result);
       if(!d||!/^gymbro/.test(d.app||"")||!d.dati||!Array.isArray(d.dati.schede)) throw 0;
       d.dati.months=d.dati.months||{}; d.dati.custom=d.dati.custom||[];
       const q=new Date(d.esportato); pendingImport={dati:d.dati,quando:isNaN(q)?"data sconosciuta":dShort(dayKey(q))+" "+q.getFullYear()}; render();
