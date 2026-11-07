@@ -1,0 +1,9 @@
+{
+  "appId": "it.maobuz.gymbro",
+  "appName": "GymBro",
+  "webDir": "www",
+  "plugins": {
+    "CapacitorHttp": { "enabled": true },
+    "LocalNotifications": { "iconColor": "#f2c230" }
+  }
+}
