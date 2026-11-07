@@ -39,15 +39,17 @@ jobs:
       - name: Copia l'app web nel progetto
         run: npx cap sync android
 
-      - name: Firma sempre con la stessa chiave (aggiornamenti senza disinstallare)
-        run: mkdir -p ~/.android && cp ci/debug.keystore ~/.android/debug.keystore
-
       - name: Compila
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Rinomina
         run: cp android/app/build/outputs/apk/debug/app-debug.apk GymBro.apk
+
+      - name: Controlla che la firma sia sempre la stessa
+        run: |
+          keytool -printcert -jarfile GymBro.apk | tee firma.txt
+          grep -q "6A:35:8B:78:79:59:15:82:45:D1:AD:DB:76:11:F7:88:F1:3E:02:9B:67:AF:00:96:12:43:1F:2E:7D:BA:FD:18" firma.txt
 
       - uses: actions/upload-artifact@v4
         with:

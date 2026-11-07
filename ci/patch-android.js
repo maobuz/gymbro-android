@@ -39,3 +39,19 @@ public class MainActivity extends BridgeActivity {
 }
 `);
 console.log("MainActivity: zoom del testo di sistema disattivato");
+
+// Firma sempre con la chiave del repository, così ogni nuovo APK si installa sopra il precedente.
+let g2 = fs.readFileSync(gradlePath, "utf8");
+if (!g2.includes("ci/debug.keystore")) {
+  g2 = g2.replace(/android\s*\{/, `android {
+    signingConfigs {
+        debug {
+            storeFile file("\${rootDir}/../ci/debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+    }`);
+  fs.writeFileSync(gradlePath, g2);
+}
+console.log("Firma: chiave fissa da ci/debug.keystore");
