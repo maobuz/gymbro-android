@@ -7,6 +7,10 @@
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
 img{max-width:100%}[hidden]{display:none!important}
+.sync{display:none!important}
+.brand{overflow:hidden;text-overflow:ellipsis}
+.stat .label{text-transform:none;letter-spacing:0;font-size:max(13px,.88em);overflow-wrap:normal}
+.stat{padding-left:10px;padding-right:10px}
 </style>
 <title>GymBro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,7 +38,7 @@ button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .wrap{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 170px}
 header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.brand{font-family:var(--f-display);font-weight:700;font-size:clamp(20px,6vw,26px);letter-spacing:.02em;text-transform:uppercase;line-height:1;display:flex;align-items:center;gap:8px}
+.brand{font-family:var(--f-display);font-weight:700;font-size:clamp(19px,5.6vw,26px);letter-spacing:.02em;text-transform:uppercase;line-height:1;display:flex;align-items:center;gap:8px;white-space:nowrap;min-width:0}
 .brand i{display:inline-block;width:10px;height:22px;background:var(--accent);border-radius:2px}
 .sync{font-size:15px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
 .sync b{width:7px;height:7px;border-radius:50%;background:var(--muted)}
@@ -45,8 +49,8 @@ h2{overflow-wrap:anywhere;font-family:var(--f-display);font-weight:600;font-size
 .stack{display:flex;flex-direction:column;gap:12px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
 .label{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
-.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:18px}
+.stat{min-width:0;overflow-wrap:anywhere;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 .stat .v{font-family:var(--f-display);font-weight:600;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
 .stat .v small{font-size:17px;color:var(--muted);font-weight:500}
 .btn{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:10px 14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px}
@@ -432,7 +436,7 @@ function vSchede(){
     <div class="meta">${s.esercizi.length} esercizi · ${s.esercizi.reduce((a,e)=>a+e.serie,0)} serie</div></div>
     <button class="btn sm" data-act="edit" data-id="${s.id}">Modifica</button></div>`).join("")}
   <button class="btn primary block" data-act="new">+ Nuova scheda</button></div>
-  ${vBackup()}${vHA()}`;
+  ${vBackup()}${vZoom()}${vHA()}`;
 }
 
 const RECS=[0,10,20,30,45,60,75,90,120,150,180,240,300];
@@ -666,7 +670,7 @@ function vCorsa(){
     <label>Durata<input class="inp" id="rf-t" inputmode="numeric" placeholder="mm:ss o h:mm:ss"></label>
     <label>FC media (facoltativa)<input class="inp" id="rf-hr" inputmode="numeric" placeholder="bpm"></label></div>
     <div class="row" style="margin-top:12px"><button class="btn primary grow" data-act="runsave">Salva corsa</button><button class="btn ghost" data-act="runcancel">Annulla</button></div></div>`:"";
-  const src=acts.status==="ok"?"Le corse registrate con l'orologio arrivano da sole da Garmin.":acts.status==="error"?"Importazione da Garmin non disponibile al momento: puoi aggiungere le corse a mano.":"";
+  const src=acts.status==="ok"?"Le corse registrate con l'orologio arrivano da sole da Garmin.":acts.status==="error"?(acts.code==="server_not_connected"?"Collega Home Assistant in Schede per importare le corse da Garmin, oppure aggiungile a mano.":"Importazione da Garmin non disponibile al momento: puoi aggiungere le corse a mano."):"";
   const wk=runs.filter(r=>r.t>=weekStart(now).getTime()), kmWk=wk.reduce((s,r)=>s+r.km,0);
   const last=runs.slice().sort((a,b)=>b.t-a.t)[0];
   return `<h1>Corsa</h1><p class="sub">${src||"Scegli un allenamento, corri e salva l'uscita."}</p>
@@ -742,6 +746,17 @@ async function exportBackup(){
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);segna();toast("Backup scaricato: "+name);
 }
+/* ---------- Dimensione del testo ---------- */
+const ZK="gymbro-zoom", ZOOMS=[["Piccolo",0.85],["Normale",1],["Grande",1.12]];
+function getZoom(){try{const z=parseFloat(localStorage.getItem(ZK));return isFinite(z)?z:1;}catch(e){return 1;}}
+function applyZoom(){document.documentElement.style.zoom=getZoom();}
+applyZoom();
+function vZoom(){const z=getZoom();
+  return `<div class="card" style="margin-top:12px"><div class="label" style="margin-bottom:8px">Dimensione del testo</div>
+  <div class="seg" style="grid-template-columns:repeat(3,1fr);margin:0">${ZOOMS.map(([l,v])=>`<button class="${Math.abs(v-z)<0.01?"on":""}" data-act="zoom" data-v="${v}">${l}</button>`).join("")}</div></div>`;}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-act='zoom']"); if(!b) return;
+  try{localStorage.setItem(ZK,b.dataset.v);}catch(err){} applyZoom(); render();});
+
 /* ---------- Home Assistant (dati Garmin) ---------- */
 let haMsg="";
 function vHA(){const c=GB_ANDROID.cfg();

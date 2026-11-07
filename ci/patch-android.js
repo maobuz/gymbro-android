@@ -19,3 +19,23 @@ let g = fs.readFileSync(gradlePath, "utf8");
 g = g.replace(/versionCode\s+\d+/, "versionCode " + build).replace(/versionName\s+"[^"]*"/, 'versionName "1.' + build + '"');
 fs.writeFileSync(gradlePath, g);
 console.log("Patch applicata: build " + build + ", permessi aggiunti: " + perms.length);
+
+// Il testo dell'app non deve essere ingrandito una seconda volta dalla dimensione
+// caratteri di sistema: la grandezza si sceglie dentro l'app (Schede -> Dimensione del testo).
+const activityPath = "android/app/src/main/java/it/maobuz/gymbro/MainActivity.java";
+fs.writeFileSync(activityPath, `package it.maobuz.gymbro;
+
+import android.os.Bundle;
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            this.bridge.getWebView().getSettings().setTextZoom(100);
+        }
+    }
+}
+`);
+console.log("MainActivity: zoom del testo di sistema disattivato");
