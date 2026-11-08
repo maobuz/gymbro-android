@@ -891,10 +891,25 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-act]"); if
   else if(a==="finish"&&oggiRiepilogo().sets.length){setTimeout(()=>{go("condividi");setTimeout(refreshShare,30);},0);}
 });
 
+/* ---------- Tema chiaro / scuro ---------- */
+const TK="gymbro-tema", TEMI=[["auto","Automatico"],["light","Chiaro"],["dark","Scuro"]];
+function getTema(){try{return localStorage.getItem(TK)||"auto";}catch(e){return "auto";}}
+function applyTema(){const t=getTema(), r=document.documentElement;
+  if(t==="auto") r.removeAttribute("data-theme"); else r.setAttribute("data-theme",t);
+  let m=document.getElementById("tema-meta"); if(!m){m=document.createElement("meta");m.name="theme-color";m.id="tema-meta";document.head.appendChild(m);}
+  if(t==="auto") m.removeAttribute("content"); else m.content=t==="dark"?"#111316":"#eceff2";}
+applyTema();
+function vTema(){const t=getTema();
+  return `<div class="card" style="margin-bottom:12px"><div class="label" style="margin-bottom:8px">Colore dello sfondo</div>
+  <div class="seg" style="grid-template-columns:repeat(3,1fr);margin:0">${TEMI.map(([v,l])=>`<button class="${v===t?"on":""}" data-act="tema" data-v="${v}">${l}</button>`).join("")}</div>
+  <p class="meta" style="margin:8px 0 0">Automatico segue l'impostazione chiaro/scuro del telefono.</p></div>`;}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-act='tema']"); if(!b) return;
+  try{localStorage.setItem(TK,b.dataset.v);}catch(err){} applyTema(); render();});
+
 /* ---------- Impostazioni ---------- */
 function vImpostazioni(){
-  return `<h1>Impostazioni</h1><p class="sub">Testo, collegamento a Home Assistant e backup dei dati.</p>
-  ${vZoom()}${vHA()}${vBackup()}`;
+  return `<h1>Impostazioni</h1><p class="sub">Colore, testo, collegamento a Home Assistant e backup dei dati.</p>
+  ${vTema()}${vZoom()}${vHA()}${vBackup()}`;
 }
 /* ---------- Dimensione del testo ---------- */
 const ZK="gymbro-zoom", ZOOMS=[["Piccolo",0.85],["Normale",1],["Grande",1.12]];

@@ -75,8 +75,8 @@ sostituisci('<div class="brand"><i></i>Palestra da GymBro Pro</div>', '<div clas
 sostituisci('x.fillText("PALESTRA DA GYMBRO",112,118);', 'x.fillText("GYMBRO LITE",112,118);')
 # Niente Garmin / Home Assistant
 sostituisci('window.claude={use:async n=>n==="mcp"?mcp:null};', 'window.claude={use:async n=>null};')
-sostituisci("${vZoom()}${vHA()}${vBackup()}", "${vZoom()}${vBackup()}")
-sostituisci("Testo, collegamento a Home Assistant e backup dei dati.", "Dimensione del testo e backup dei dati.")
+sostituisci("${vTema()}${vZoom()}${vHA()}${vBackup()}", "${vTema()}${vZoom()}${vBackup()}")
+sostituisci("Colore, testo, collegamento a Home Assistant e backup dei dati.", "Colore, dimensione del testo e backup dei dati.")
 # Timer di recupero: cerchio al centro
 i = s.index("function tick(){")
 j = s.index("\nasync function keepAwake", i)
