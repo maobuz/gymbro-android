@@ -31,7 +31,7 @@ jobs:
 
       - name: Icone
         continue-on-error: true
-        run: npx @capacitor/assets generate --android --iconBackgroundColor '#15181c' --iconBackgroundColorDark '#15181c' --splashBackgroundColor '#15181c' --splashBackgroundColorDark '#15181c'
+        run: npx --yes @capacitor/assets@3.0.5 generate --android --iconBackgroundColor '#15181c' --iconBackgroundColorDark '#15181c' --splashBackgroundColor '#15181c' --splashBackgroundColorDark '#15181c'
 
       - name: Permessi e versione
         run: node ci/patch-android.js ${{ github.run_number }}
