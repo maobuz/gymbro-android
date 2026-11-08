@@ -517,7 +517,7 @@ function chart(pts){
 
 /* ---------- Garmin via Home Assistant ---------- */
 const HA="Ha-Casa";
-const GE={sonno:"sensor.sleep_score",durata:"sensor.sleep_duration",bb:"sensor.body_battery_most_recent",hrv:"sensor.garmin_connect_hrv_last_night_average",hrvBase:"sensor.garmin_connect_hrv_baseline",hrvStatus:"sensor.hrv_status",fc:"sensor.resting_heart_rate",cal:"sensor.active_kilocalories",calTot:"sensor.total_kilocalories",sync:"sensor.garmin_connect_last_synced"};
+const GE={sonno:"sensor.sleep_score",durata:"sensor.sleep_duration",bb:"sensor.body_battery_most_recent",hrv:"sensor.garmin_connect_hrv_last_night_average",hrvBase:"sensor.garmin_connect_hrv_baseline",hrvStatus:"sensor.hrv_status",fc:"sensor.resting_heart_rate",cal:"sensor.active_kilocalories",calTot:"sensor.total_kilocalories",passi:"sensor.total_steps",passiGoal:"sensor.daily_step_goal",sync:"sensor.garmin_connect_last_synced"};
 const GINPUT={entity_id:Object.values(GE),fields:["state"]};
 const HRVIT={balanced:"bilanciato",unbalanced:"sbilanciato",low:"basso",poor:"scarso"};
 let garmin={status:"loading"}, MCP=null;
@@ -526,7 +526,7 @@ function parseG(p){
   const st=(p&&p.data&&p.data.states)||(p&&p.states); if(!st) return null;
   const raw=k=>{const s=st[GE[k]];const v=s&&s.state;return v==null||v==="unknown"||v==="unavailable"?null:v;};
   const n=k=>{const v=parseFloat(raw(k));return isFinite(v)?Math.round(v):null;};
-  return {sonno:n("sonno"),durata:n("durata"),bb:n("bb"),hrv:n("hrv"),hrvBase:n("hrvBase"),hrvStatus:raw("hrvStatus"),fc:n("fc"),cal:n("cal"),calTot:n("calTot"),sync:raw("sync")};
+  return {sonno:n("sonno"),durata:n("durata"),bb:n("bb"),hrv:n("hrv"),hrvBase:n("hrvBase"),hrvStatus:raw("hrvStatus"),fc:n("fc"),cal:n("cal"),calTot:n("calTot"),passi:n("passi"),passiGoal:n("passiGoal"),sync:raw("sync")};
 }
 function verdict(d){
   const st=(d.hrvStatus||"").toLowerCase();
@@ -582,7 +582,8 @@ function vGarmin(){
     ${m("Body Battery",d.bb,"/100","")}
     ${m("HRV notte",d.hrv,"ms",d.hrvStatus?"stato "+(HRVIT[d.hrvStatus.toLowerCase()]||d.hrvStatus):"")}
     ${m("FC a riposo",d.fc,"bpm","")}
-    <div class="wide">${m("Calorie attive oggi",d.cal,"kcal",d.calTot!=null?"su "+d.calTot+" kcal totali della giornata":"")}</div></div>
+    ${m("Passi oggi",d.passi!=null?d.passi.toLocaleString("it-IT"):null,"",d.passiGoal?"obiettivo "+d.passiGoal.toLocaleString("it-IT")+(d.passi!=null?" \u00b7 "+Math.round(d.passi/d.passiGoal*100)+"%":""):"")}
+    ${m("Calorie attive",d.cal,"kcal",d.calTot!=null?"su "+d.calTot.toLocaleString("it-IT")+" kcal totali":"")}</div>
     ${syncTxt?`<div class="meta">Orologio sincronizzato ${syncTxt}. I dati vengono salvati con la seduta.</div>`:""}</div>`;
 }
 
