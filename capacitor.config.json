@@ -1,6 +1,6 @@
 {
   "appId": "it.maobuz.gymbro",
-  "appName": "GymBro",
+  "appName": "GymBro Pro",
   "webDir": "www",
   "plugins": {
     "CapacitorHttp": { "enabled": true },

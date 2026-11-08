@@ -60,7 +60,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: GymBro 1.${{ github.run_number }}
+          name: GymBro Pro 1.${{ github.run_number }}
           files: GymBro.apk
           make_latest: true
           body: |
