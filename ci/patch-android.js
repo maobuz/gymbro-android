@@ -22,8 +22,9 @@ console.log("Patch applicata: build " + build + ", permessi aggiunti: " + perms.
 
 // Il testo dell'app non deve essere ingrandito una seconda volta dalla dimensione
 // caratteri di sistema: la grandezza si sceglie dentro l'app (Schede -> Dimensione del testo).
-const activityPath = "android/app/src/main/java/it/maobuz/gymbro/MainActivity.java";
-fs.writeFileSync(activityPath, `package it.maobuz.gymbro;
+const appId = JSON.parse(fs.readFileSync("capacitor.config.json", "utf8")).appId;
+const activityPath = "android/app/src/main/java/" + appId.split(".").join("/") + "/MainActivity.java";
+fs.writeFileSync(activityPath, `package ${appId};
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;

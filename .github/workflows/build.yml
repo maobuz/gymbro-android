@@ -10,6 +10,18 @@ permissions:
 
 jobs:
   apk:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variante: pro
+            file: GymBro.apk
+            icone: assets
+            sfondo: "#15181c"
+          - variante: lite
+            file: GymBroLite.apk
+            icone: assets-lite
+            sfondo: "#f2c230"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,6 +35,10 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Prepara la versione Lite
+        if: matrix.variante == 'lite'
+        run: python3 ci/make_lite.py
+
       - name: Installa Capacitor
         run: npm install --no-audit --no-fund
 
@@ -31,9 +47,9 @@ jobs:
 
       - name: Icone
         continue-on-error: true
-        run: npx --yes @capacitor/assets@3.0.5 generate --android --iconBackgroundColor '#15181c' --iconBackgroundColorDark '#15181c' --splashBackgroundColor '#15181c' --splashBackgroundColorDark '#15181c'
+        run: npx --yes @capacitor/assets@3.0.5 generate --android --assetPath ${{ matrix.icone }} --iconBackgroundColor '${{ matrix.sfondo }}' --iconBackgroundColorDark '${{ matrix.sfondo }}' --splashBackgroundColor '#15181c' --splashBackgroundColorDark '#15181c'
 
-      - name: Permessi e versione
+      - name: Permessi, versione e firma
         run: node ci/patch-android.js ${{ github.run_number }}
 
       - name: Copia l'app web nel progetto
@@ -44,24 +60,37 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Rinomina
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk GymBro.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk ${{ matrix.file }}
 
       - name: Controlla che la firma sia sempre la stessa
         run: |
-          keytool -printcert -jarfile GymBro.apk | tee firma.txt
+          keytool -printcert -jarfile ${{ matrix.file }} | tee firma.txt
           grep -q "6A:35:8B:78:79:59:15:82:45:D1:AD:DB:76:11:F7:88:F1:3E:02:9B:67:AF:00:96:12:43:1F:2E:7D:BA:FD:18" firma.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GymBro-apk
-          path: GymBro.apk
+          name: apk-${{ matrix.variante }}
+          path: ${{ matrix.file }}
+
+  pubblica:
+    needs: apk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: apk-*
+          merge-multiple: true
 
       - name: Pubblica per il download
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: GymBro Pro 1.${{ github.run_number }}
-          files: GymBro.apk
+          name: GymBro 1.${{ github.run_number }}
+          files: |
+            GymBro.apk
+            GymBroLite.apk
           make_latest: true
           body: |
-            Scarica **GymBro.apk** dal telefono e installalo (sopra la versione precedente: i dati restano).
+            **GymBro.apk**: versione Pro (Garmin e Home Assistant).
+            **GymBroLite.apk**: versione Lite, senza Garmin. Si installa accanto alla Pro.
+            Per aggiornare installa sopra la versione precedente: i dati restano.
