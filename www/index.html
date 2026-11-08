@@ -365,7 +365,7 @@ document.addEventListener("focusout",()=>{if(pendingRender){setTimeout(()=>{cons
 
 function render(){
   ["oggi","schede","corsa","progressi","impostazioni"].forEach(t=>document.getElementById("nav-"+t).classList.toggle("on",(view==="sessione"?"oggi":view==="modifica"?"schede":view)===t));
-  app.innerHTML=view==="oggi"?vOggi():view==="sessione"?vSessione():view==="schede"?vSchede():view==="modifica"?vModifica():view==="corsa"?vCorsa():view==="impostazioni"?vImpostazioni():vProgressi();
+  app.innerHTML=view==="oggi"?vOggi():view==="sessione"?vSessione():view==="schede"?vSchede():view==="modifica"?vModifica():view==="corsa"?vCorsa():view==="impostazioni"?vImpostazioni():view==="condividi"?vCondividi():vProgressi();
 }
 
 function weekStats(){
@@ -384,6 +384,7 @@ function vOggi(){
   <div class="stat"><div class="label">Serie fatte</div><div class="v">${w.serie}</div></div>
   <div class="stat"><div class="label">Peso sollevato</div><div class="v">${vol}</div></div></div>
   <p class="meta" style="margin:0 0 18px">Peso sollevato = somma di peso × ripetizioni di tutte le serie.</p>
+  ${allSets().some(x=>dayKey(x.t)===dayKey(Date.now()))?`<button class="btn block" data-act="share-open" style="margin-bottom:18px">Condividi l'allenamento di oggi</button>`:""}
   <div class="label" style="margin-bottom:8px">Le tue schede</div>
   <div class="stack">${state.schede.length?state.schede.map(s=>{const ld=lastDone(s.id);return `<div class="card scheda-card">
     <div class="row between"><h2>${esc(s.nome)}</h2><span class="meta">${ld?"Ultima: "+dShort(ld):"Mai fatta"}</span></div>
@@ -782,6 +783,111 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-act]"); if
   if(b.dataset.act==="ha-bk"){haBkMsg="Invio in corso…";render();sendHaBackup(true);}
   else if(b.dataset.act==="finish") setTimeout(autoHaBackup,1500);});
 setTimeout(autoHaBackup,8000);
+
+/* ---------- Condividi l'allenamento (immagine per Instagram e Facebook) ---------- */
+const MUSC_NOMI={pettorali:"Pettorali",deltoidi:"Spalle",trapezio:"Trapezio",dorsali:"Dorsali",lombari:"Lombari",bicipiti:"Bicipiti",tricipiti:"Tricipiti",avambracci:"Avambracci",addominali:"Addominali",obliqui:"Obliqui",quadricipiti:"Quadricipiti",femorali:"Femorali",glutei:"Glutei",polpacci:"Polpacci"};
+function muscoli(ex){
+  const i=exInfo(ex), n=(i.n||"").toLowerCase(), g=i.g, r={p:[],s:[]}, P=(...a)=>r.p.push(...a), S=(...a)=>r.s.push(...a);
+  if(g==="Petto"){P("pettorali");S("tricipiti","deltoidi");}
+  else if(g==="Schiena"){ if(/stacco|hyperext/.test(n)){P("lombari","glutei","femorali");S("dorsali","trapezio");} else {P("dorsali");S("bicipiti","trapezio","deltoidi");} }
+  else if(g==="Spalle"){ if(/scrollat/.test(n))P("trapezio"); else if(/posterior|face pull|reverse|tirate/.test(n))P("deltoidi","trapezio"); else {P("deltoidi");S("tricipiti","trapezio");} }
+  else if(g==="Braccia"){ if(/curl/.test(n)){P("bicipiti");S("avambracci");} else P("tricipiti"); }
+  else if(g==="Gambe"){ if(/leg curl|rumeno/.test(n)){P("femorali");S("glutei");} else if(/hip thrust|abductor/.test(n))P("glutei");
+    else if(/calf|polpacc/.test(n))P("polpacci"); else if(/extension|adductor/.test(n))P("quadricipiti"); else {P("quadricipiti","glutei");S("femorali","polpacci");} }
+  else if(g==="Addome"){P("addominali");S("obliqui"); if(/russian/.test(n))P("obliqui");}
+  return r;
+}
+const ell=(cx,cy,rx,ry)=>`M${cx-rx} ${cy}a${rx} ${ry} 0 1 0 ${2*rx} 0a${rx} ${ry} 0 1 0 ${-2*rx} 0Z`;
+const rr=(x,y,w,h,r)=>`M${x+r} ${y}h${w-2*r}a${r} ${r} 0 0 1 ${r} ${r}v${h-2*r}a${r} ${r} 0 0 1 ${-r} ${r}h${-(w-2*r)}a${r} ${r} 0 0 1 ${-r} ${-r}v${-(h-2*r)}a${r} ${r} 0 0 1 ${r} ${-r}Z`;
+const BODY_BASE=[ell(150,48,26,30),rr(138,72,24,24,6),rr(106,94,88,162,28),rr(114,244,72,38,14),ell(72,282,10,12),ell(228,282,10,12),ell(130,408,13,10),ell(170,408,13,10),rr(116,514,26,14,6),rr(158,514,26,14,6)];
+const BODY={
+  davanti:{deltoidi:[ell(98,116,20,19),ell(202,116,20,19)],pettorali:[rr(110,102,38,44,14),rr(152,102,38,44,14)],
+    addominali:[rr(128,152,20,26,6),rr(152,152,20,26,6),rr(128,182,20,26,6),rr(152,182,20,26,6),rr(128,212,20,28,6),rr(152,212,20,28,6)],
+    obliqui:[rr(110,156,14,82,7),rr(176,156,14,82,7)],bicipiti:[ell(84,170,13,30),ell(216,170,13,30)],avambracci:[ell(76,238,11,32),ell(224,238,11,32)],
+    quadricipiti:[ell(130,338,21,62),ell(170,338,21,62)],polpacci:[ell(129,466,13,44),ell(171,466,13,44)]},
+  dietro:{trapezio:["M150 76L192 108L172 118L150 162L128 118L108 108Z"],deltoidi:[ell(98,116,20,19),ell(202,116,20,19)],
+    dorsali:["M112 122L146 130L146 200Q128 214 116 190Z","M188 122L154 130L154 200Q172 214 184 190Z"],lombari:[rr(132,204,36,38,10)],
+    tricipiti:[ell(84,170,13,30),ell(216,170,13,30)],avambracci:[ell(76,238,11,32),ell(224,238,11,32)],
+    glutei:[ell(132,272,20,22),ell(168,272,20,22)],femorali:[ell(130,345,20,52),ell(170,345,20,52)],polpacci:[ell(129,455,15,40),ell(171,455,15,40)]}
+};
+function oggiRiepilogo(){
+  const k=dayKey(Date.now()), sets=allSets().filter(x=>dayKey(x.t)===k);
+  const pr=new Set(), se=new Set(), ex=[];
+  sets.forEach(x=>{if(!ex.includes(x.ex))ex.push(x.ex);const m=muscoli(x.ex);m.p.forEach(a=>pr.add(a));m.s.forEach(a=>se.add(a));});
+  pr.forEach(a=>se.delete(a));
+  const cnt={};sets.forEach(x=>{if(x.s)cnt[x.s]=(cnt[x.s]||0)+1;});
+  const sid=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0], sch=state.schede.find(z=>z.id===sid);
+  return {sets,pr,se,ex,nome:sch?sch.nome:"Allenamento",vol:sets.reduce((a,x)=>a+x.w*x.r,0),cardio:ex.some(e=>exInfo(e).g==="Cardio")};
+}
+async function buildShareImage(){
+  const R=oggiRiepilogo(), W=1080, H=1350, c=document.createElement("canvas"); c.width=W; c.height=H;
+  const x=c.getContext("2d"), cs=getComputedStyle(document.documentElement);
+  const DISP='"Saira Condensed","Arial Narrow",sans-serif', BODYF='"Figtree",system-ui,sans-serif';
+  try{await Promise.all([document.fonts.load('700 60px "Saira Condensed"'),document.fonts.load('600 30px "Figtree"')]);}catch(e){}
+  const BG="#111316", CARD="#1a1e23", BASE="#262c33", IDLE="#343c45", ACC="#f2c230", ACC2="rgba(242,194,48,.42)", INK="#eceff2", MUT="#9aa4ae";
+  x.fillStyle=BG;x.fillRect(0,0,W,H);
+  x.fillStyle=ACC;x.fillRect(80,72,16,52);
+  x.fillStyle=INK;x.font='700 50px '+DISP;x.textBaseline="alphabetic";x.fillText("PALESTRA DA GYMBRO",112,118);
+  const d=new Date(), GG=["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"], MM=["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
+  x.fillStyle=MUT;x.font='500 30px '+BODYF;x.fillText(GG[d.getDay()]+" "+d.getDate()+" "+MM[d.getMonth()],80,180);
+  let fs=72;x.font='700 '+fs+'px '+DISP;while(x.measureText(R.nome.toUpperCase()).width>W-160&&fs>40){fs-=4;x.font='700 '+fs+'px '+DISP;}
+  x.fillStyle=INK;x.fillText(R.nome.toUpperCase(),80,180+fs+14);
+  const drawBody=(view,ox,oy,sc)=>{x.save();x.translate(ox,oy);x.scale(sc,sc);
+    x.fillStyle=BASE;BODY_BASE.forEach(p=>x.fill(new Path2D(p)));
+    Object.entries(BODY[view]).forEach(([m,ps])=>{x.fillStyle=R.pr.has(m)?ACC:R.se.has(m)?ACC2:IDLE;ps.forEach(p=>x.fill(new Path2D(p)));});
+    x.restore();};
+  const sc=1.2, top=286;
+  drawBody("davanti",125,top,sc); drawBody("dietro",565,top,sc);
+  x.fillStyle=MUT;x.font='600 26px '+BODYF;x.textAlign="center";
+  x.fillText("DAVANTI",125+150*sc,top+545*sc);x.fillText("DIETRO",565+150*sc,top+545*sc);x.textAlign="left";
+  let y=top+545*sc+70;
+  const nomi=[...R.pr].map(m=>MUSC_NOMI[m]); if(R.cardio) nomi.push("Cardio");
+  x.font='600 34px '+BODYF;
+  const chip=(t,cx,cy,on)=>{const w=x.measureText(t).width+44;x.fillStyle=on?ACC:CARD;x.beginPath();x.roundRect(cx,cy-38,w,54,27);x.fill();x.fillStyle=on?"#15181c":INK;x.fillText(t,cx+22,cy);return w;};
+  let cx=80;
+  (nomi.length?nomi:["Allenamento completato"]).forEach(t=>{const w=x.measureText(t).width+44;if(cx+w>W-80){cx=80;y+=68;}cx+=chip(t,cx,y,true)+14;});
+  y=Math.max(y+40,H-268);
+  const st=[["Serie",String(R.sets.length)],["Peso sollevato",Math.round(R.vol).toLocaleString("it-IT")+" kg"],["Esercizi",String(R.ex.length)]];
+  if(garmin.status==="ok"&&garmin.data.cal!=null) st.push(["Calorie attive",garmin.data.cal+" kcal"]);
+  const bw=(W-160-(st.length-1)*20)/st.length;
+  st.forEach(([l,v],i)=>{const bx=80+i*(bw+20);x.fillStyle=CARD;x.beginPath();x.roundRect(bx,y,bw,140,22);x.fill();
+    x.fillStyle=MUT;x.font='600 26px '+BODYF;x.fillText(l,bx+24,y+46);
+    let f=56;x.font='700 '+f+'px '+DISP;while(x.measureText(v).width>bw-40&&f>30){f-=4;x.font='700 '+f+'px '+DISP;}
+    x.fillStyle=INK;x.fillText(v,bx+24,y+112);});
+  x.fillStyle=MUT;x.font='500 26px '+BODYF;x.fillText("Allenato con GymBro",80,H-50);
+  x.font='500 24px '+BODYF;x.textAlign="right";x.fillStyle=MUT;
+  const t2="supporto", t1="principale", w2=x.measureText(t2).width, w1=x.measureText(t1).width;
+  x.fillText(t2,W-80,H-50);x.fillStyle=ACC2;x.beginPath();x.arc(W-80-w2-18,H-58,10,0,7);x.fill();
+  x.fillStyle=MUT;x.fillText(t1,W-80-w2-48,H-50);x.fillStyle=ACC;x.beginPath();x.arc(W-80-w2-48-w1-18,H-58,10,0,7);x.fill();x.textAlign="left";
+  return c.toDataURL("image/png");
+}
+let shareUrl="";
+function vCondividi(){
+  const R=oggiRiepilogo();
+  if(!R.sets.length) return `<button class="back" data-act="tab" data-v="oggi">‹ Allenamento</button><div class="card empty"><strong>Niente da condividere</strong>Segna almeno una serie oggi per creare l'immagine.</div>`;
+  return `<h1>Ben fatto!</h1><p class="sub">Ecco il riepilogo di oggi, pronto da condividere.</p>
+  <div class="card" style="padding:8px;margin-bottom:14px"><img id="share-img" alt="Riepilogo dell'allenamento con i muscoli lavorati" style="display:block;width:100%;border-radius:8px;aspect-ratio:4/5;background:var(--surface-2)"></div>
+  <div class="stack"><button class="btn primary block" data-act="share-go">Condividi su Instagram, Facebook…</button>
+  <button class="btn ghost block" data-act="tab" data-v="oggi">Chiudi</button></div>`;
+}
+async function refreshShare(){const img=document.getElementById("share-img"); if(!img) return;
+  try{shareUrl=await buildShareImage(); const i2=document.getElementById("share-img"); if(i2) i2.src=shareUrl;}catch(e){toast("Non riesco a creare l'immagine");}}
+async function shareGo(){
+  if(!shareUrl) await refreshShare(); if(!shareUrl) return;
+  const P=window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&Capacitor.Plugins;
+  try{
+    if(P&&P.Filesystem&&P.Share){const w=await P.Filesystem.writeFile({path:"gymbro-allenamento.png",data:shareUrl.split(",")[1],directory:"CACHE"});
+      await P.Share.share({title:"Il mio allenamento",text:"Allenamento di oggi con GymBro",files:[w.uri],dialogTitle:"Condividi l'allenamento"});return;}
+    const blob=await (await fetch(shareUrl)).blob(), file=new File([blob],"gymbro-allenamento.png",{type:"image/png"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"Il mio allenamento"});return;}
+    const a=document.createElement("a");a.href=shareUrl;a.download="gymbro-allenamento.png";document.body.appendChild(a);a.click();a.remove();
+  }catch(e){if(!/cancel|abort/i.test(String(e&&(e.message||e.name||e))))toast("Condivisione non riuscita: riprova");}
+}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-act]"); if(!b) return; const a=b.dataset.act;
+  if(a==="share-go") shareGo();
+  else if(a==="share-open"){go("condividi");setTimeout(refreshShare,30);}
+  else if(a==="finish"&&oggiRiepilogo().sets.length){setTimeout(()=>{go("condividi");setTimeout(refreshShare,30);},0);}
+});
 
 /* ---------- Impostazioni ---------- */
 function vImpostazioni(){
