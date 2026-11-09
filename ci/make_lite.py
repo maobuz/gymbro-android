@@ -72,7 +72,7 @@ def sostituisci(vecchio, nuovo):
 # Nome
 sostituisci("<title>GymBro Pro</title>", "<title>GymBro Lite</title>")
 sostituisci('<div class="brand"><i></i>Palestra da GymBro Pro</div>', '<div class="brand"><i></i>GymBro Lite</div>')
-sostituisci('x.fillText("PALESTRA DA GYMBRO",112,118);', 'x.fillText("GYMBRO LITE",112,118);')
+sostituisci('x.fillText("PALESTRA DA GYMBRO PRO",112,118);', 'x.fillText("GYMBRO LITE",112,118);')
 # Niente Garmin / Home Assistant
 sostituisci('window.claude={use:async n=>n==="mcp"?mcp:null};', 'window.claude={use:async n=>null};')
 sostituisci("${vTema()}${vZoom()}${vHA()}${vBackup()}", "${vTema()}${vZoom()}${vBackup()}")
