@@ -77,12 +77,13 @@ sostituisci('x.fillText("PALESTRA DA GYMBRO PRO",112,118);', 'x.fillText("GYMBRO
 sostituisci('window.claude={use:async n=>n==="mcp"?mcp:null};', 'window.claude={use:async n=>null};')
 sostituisci("${vTema()}${vZoom()}${vHA()}${vBackup()}", "${vTema()}${vZoom()}${vBackup()}")
 sostituisci("Colore, testo, collegamento a Home Assistant e backup dei dati.", "Colore, dimensione del testo e backup dei dati.")
-# Timer di recupero: cerchio al centro
-i = s.index("function tick(){")
-j = s.index("\nasync function keepAwake", i)
-s = s[:i] + TICK + s[j:]
-sostituisci("function startTimer(sec,name,from){tFrom=from||null;", "function startTimer(sec,name,from){tMini=false;tFrom=from||null;")
-sostituisci("#timer.over .tb{", CSS + "#timer.over .tb{")
+# Timer di recupero: cerchio al centro (se la Pro non lo ha già)
+if "const RC=2*Math.PI*104" not in s:
+    i = s.index("function tick(){")
+    j = s.index("\nasync function keepAwake", i)
+    s = s[:i] + TICK + s[j:]
+    sostituisci("function startTimer(sec,name,from){tFrom=from||null;", "function startTimer(sec,name,from){tMini=false;tFrom=from||null;")
+    sostituisci("#timer.over .tb{", CSS + "#timer.over .tb{")
 
 open(p, "w", encoding="utf-8").write(s)
 
